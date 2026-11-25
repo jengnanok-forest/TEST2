@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火力發電原理互動式教學系統 | Thermal Power Generation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Noto Sans TC & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#172033',
+                            900: '#0f172a',
+                            950: '#080d1a',
+                        },
+                        industrial: {
+                            cyan: '#06b6d4',
+                            amber: '#f59e0b',
+                            orange: '#ea580c',
+                            emerald: '#10b981',
+                            crimson: '#e11d48'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #080d1a;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 999px;
+            border: 1px solid #334155;
+        }
+        /* Cooling slider specific thumb */
+        #coolingSlider::-webkit-slider-thumb {
+            background: #06b6d4;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
+        }
+        /* Fuel slider specific thumb */
+        #fuelSlider::-webkit-slider-thumb {
+            background: #f97316;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glow-border {
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <i class="fa-solid fa-fire-flame-curved text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-wide text-white flex items-center gap-2">
+                        火力發電原理互動模擬器
+                        <span class="hidden sm:inline-block text-xs font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">THERMAL POWER SIMULATOR</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">朗肯循環（Rankine Cycle）與能量轉換動態教學平台</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <button onclick="scrollToSection('quiz-section')" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 text-xs sm:text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-question"></i>
+                    <span>隨堂小測驗</span>
+                </button>
+                <button onclick="resetSimulation()" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs sm:text-sm font-medium transition flex items-center gap-1.5" title="重設參數">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span class="hidden md:inline">重設系統</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Top Telemetry Dashboard (Live Metrics) -->
+        <section aria-label="即時數據儀表板" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            <!-- Metric 1: Boiler Temp -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-slate-400">鍋爐爐膛溫度</span>
+                    <i class="fa-solid fa-temperature-high text-orange-500 text-sm"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1">
+                    <span id="val-temp" class="text-2xl sm:text-3xl font-mono font-bold text-orange-400">540</span>
+                    <span class="text-xs text-slate-400 font-mono">°C</span>
+                </div>
+                <div class="mt-2 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div id="bar-temp" class="bg-gradient-to-r from-amber-500 to-red-500 h-full transition-all duration-300" style="width: 75%"></div>
+                </div>
+            </div>
+
+            <!-- Metric 2: Steam Pressure -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-slate-400">主蒸氣壓力</span>
+                    <i class="fa-solid fa-gauge-high text-amber-400 text-sm"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1">
+                    <span id="val-pressure" class="text-2xl sm:text-3xl font-mono font-bold text-amber-300">16.8</span>
+                    <span class="text-xs text-slate-400 font-mono">MPa</span>
+                </div>
+                <div class="mt-2 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div id="bar-pressure" class="bg-amber-400 h-full transition-all duration-300" style="width: 70%"></div>
+                </div>
+            </div>
+
+            <!-- Metric 3: Turbine RPM -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-slate-400">汽輪機轉速</span>
+                    <i class="fa-solid fa-fan text-cyan-400 text-sm"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1">
+                    <span id="val-rpm" class="text-2xl sm:text-3xl font-mono font-bold text-cyan-300">3600</span>
+                    <span class="text-xs text-slate-400 font-mono">RPM</span>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <span>同步頻率: <span id="val-hz" class="text-cyan-400">60.0</span> Hz</span>
+                </div>
+            </div>
+
+            <!-- Metric 4: Power Output -->
+            <div class="bg-slate-900 border border-cyan-900/50 rounded-xl p-3.5 sm:p-4 relative overflow-hidden glow-border">
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-cyan-300">淨發電功率</span>
+                    <i class="fa-solid fa-bolt text-yellow-400 text-sm"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1">
+                    <span id="val-power" class="text-2xl sm:text-3xl font-mono font-bold text-yellow-400">425</span>
+                    <span class="text-xs text-slate-400 font-mono">MW</span>
+                </div>
+                <div class="mt-2 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div id="bar-power" class="bg-yellow-400 h-full transition-all duration-300" style="width: 75%"></div>
+                </div>
+            </div>
+
+            <!-- Metric 5: Thermal Efficiency -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-slate-400">機組淨熱效率</span>
+                    <i class="fa-solid fa-chart-line text-emerald-400 text-sm"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1">
+                    <span id="val-eff" class="text-2xl sm:text-3xl font-mono font-bold text-emerald-400">41.2</span>
+                    <span class="text-xs text-slate-400 font-mono">%</span>
+                </div>
+                <div class="mt-2 text-[11px] text-slate-400 truncate" id="eff-note">
+                    超臨界燃煤標準水準
+                </div>
+            </div>
+
+            <!-- Metric 6: CO2 Emissions -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-slate-400">CO₂ 排放強度</span>
+                    <i class="fa-solid fa-smog text-slate-400 text-sm"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-1">
+                    <span id="val-co2" class="text-2xl sm:text-3xl font-mono font-bold text-slate-200">820</span>
+                    <span class="text-xs text-slate-400 font-mono">g/kWh</span>
+                </div>
+                <div class="mt-2 text-[11px] font-mono" id="co2-badge">
+                    <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">高碳排 (燃煤)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Interactive Workspace: Canvas Simulation + Controls & Guided Tour -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left 8 Columns: Interactive Canvas Simulator + Energy Conversion Bar -->
+            <div class="lg:col-span-8 flex flex-col space-y-4">
+                
+                <!-- Step-by-Step Guided Tour Selector -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-2 flex flex-wrap gap-1.5 sm:gap-2 items-center justify-between">
+                    <button onclick="selectStep(0)" id="step-btn-0" class="step-btn flex-1 min-w-[90px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-medium transition text-center bg-cyan-600 text-white shadow">
+                        <i class="fa-solid fa-eye mr-1"></i>全系統總覽
+                    </button>
+                    <button onclick="selectStep(1)" id="step-btn-1" class="step-btn flex-1 min-w-[105px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-medium transition text-center bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        1. 燃料燃燒
+                    </button>
+                    <button onclick="selectStep(2)" id="step-btn-2" class="step-btn flex-1 min-w-[105px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-medium transition text-center bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        2. 蒸氣產生
+                    </button>
+                    <button onclick="selectStep(3)" id="step-btn-3" class="step-btn flex-1 min-w-[105px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-medium transition text-center bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        3. 推動渦輪
+                    </button>
+                    <button onclick="selectStep(4)" id="step-btn-4" class="step-btn flex-1 min-w-[115px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-medium transition text-center bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        4. 電磁感應發電
+                    </button>
+                    <button onclick="selectStep(5)" id="step-btn-5" class="step-btn flex-1 min-w-[105px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-medium transition text-center bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        5. 冷凝循環
+                    </button>
+                </div>
+
+                <!-- Interactive Simulation Canvas Wrapper -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-2 sm:p-3 relative shadow-2xl">
+                    <!-- Legend Overlay -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-950/80 rounded-xl border border-slate-800/80 mb-2 text-xs">
+                        <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500 inline-block shadow shadow-red-500"></span>高溫高壓過熱蒸氣</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>做功後低壓乏汽</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>凝結水 / 給水循環</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span>外部冷卻水</span>
+                        </div>
+                        <span class="text-slate-400 hidden sm:inline"><i class="fa-solid fa-computer-mouse mr-1"></i>點擊設備可查看原理</span>
+                    </div>
+
+                    <!-- Responsive Canvas Container -->
+                    <div id="canvas-container" class="w-full relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800" style="aspect-ratio: 16 / 10; min-height: 320px;">
+                        <canvas id="powerPlantCanvas" class="w-full h-full block cursor-pointer"></canvas>
+                    </div>
+                </div>
+
+                <!-- Energy Conversion Sankey / Distribution Bar -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-right-left text-cyan-400"></i>
+                            即時能量轉換流向與熱損失分析 (Energy Conversion Balance)
+                        </h3>
+                        <span class="text-xs font-mono text-slate-400" id="energy-input-label">總輸入化學能: 1031 MWth</span>
+                    </div>
+
+                    <!-- Stacked Progress Bar -->
+                    <div class="w-full h-7 bg-slate-950 rounded-lg overflow-hidden flex border border-slate-800 text-[11px] font-mono font-bold">
+                        <div id="seg-electric" class="bg-gradient-to-r from-yellow-500 to-amber-400 text-slate-950 flex items-center justify-center transition-all duration-300 overflow-hidden whitespace-nowrap px-1" style="width: 41.2%">
+                            電能輸出 41.2%
+                        </div>
+                        <div id="seg-condenser" class="bg-gradient-to-r from-blue-600 to-cyan-600 text-white flex items-center justify-center transition-all duration-300 overflow-hidden whitespace-nowrap px-1" style="width: 46.8%">
+                            冷凝器排熱損失 46.8%
+                        </div>
+                        <div id="seg-flue" class="bg-slate-700 text-slate-200 flex items-center justify-center transition-all duration-300 overflow-hidden whitespace-nowrap px-1" style="width: 12%">
+                            煙氣/機械損失 12.0%
+                        </div>
+                    </div>
+
+                    <!-- Energy Chain Flow Diagram -->
+                    <div class="mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-4 gap-2 text-center text-xs">
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                            <div class="text-amber-500 font-bold mb-0.5"><i class="fa-solid fa-fire mr-1"></i>化學能</div>
+                            <div class="text-slate-400 text-[11px]">燃料分子鍵結能</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 relative">
+                            <div class="text-orange-500 font-bold mb-0.5"><i class="fa-solid fa-temperature-arrow-up mr-1"></i>熱能</div>
+                            <div class="text-slate-400 text-[11px]">高溫高壓過熱蒸氣</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                            <div class="text-cyan-400 font-bold mb-0.5"><i class="fa-solid fa-gear mr-1"></i>機械能</div>
+                            <div class="text-slate-400 text-[11px]">汽輪機轉子動能</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                            <div class="text-yellow-400 font-bold mb-0.5"><i class="fa-solid fa-bolt mr-1"></i>電能</div>
+                            <div class="text-slate-400 text-[11px]">三相交流電併網</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 4 Columns: Control Panel & Step Explanation Card -->
+            <div class="lg:col-span-4 flex flex-col space-y-4">
+                
+                <!-- Control Panel -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-xl">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-cyan-400"></i>
+                            電廠運轉控制室
+                        </h2>
+                        <span id="plant-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>併網運轉中
+                        </span>
+                    </div>
+
+                    <!-- Fuel Type Toggle -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2">1. 燃料類型選擇 (Fuel Type)</label>
+                        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                            <button id="btn-coal" onclick="setFuelType('coal')" class="py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-slate-800 text-orange-400 border border-orange-500/40 shadow">
+                                <i class="fa-solid fa-cubes-stacked"></i>
+                                <span>燃煤 (Coal)</span>
+                            </button>
+                            <button id="btn-gas" onclick="setFuelType('gas')" class="py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+                                <i class="fa-solid fa-burn"></i>
+                                <span>天然氣 (Gas)</span>
+                            </button>
+                        </div>
+                        <p id="fuel-desc" class="mt-2 text-xs text-slate-400 leading-relaxed bg-slate-950/70 p-2.5 rounded-lg border border-slate-800/80">
+                            <strong class="text-orange-400">粉煤鍋爐機組：</strong>燃料成本較低、適合基載發電，但熱效率約 40~42%，且二氧化碳與硫氧化物排放較高，需配備靜電集塵器(ESP)與脫硫設備(FGD)。
+                        </p>
+                    </div>
+
+                    <!-- Fuel Feed Rate Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="fuelSlider" class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-fire text-orange-500"></i>
+                                2. 燃料供給率 (火力控制)
+                            </label>
+                            <span id="fuel-rate-display" class="font-mono text-sm font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">75%</span>
+                        </div>
+                        <input type="range" id="fuelSlider" min="0" max="100" value="75" class="w-full">
+                        <div class="flex justify-between text-[11px] text-slate-500 font-mono mt-1">
+                            <span>0% (停機)</span>
+                            <span>50% (半載)</span>
+                            <span>100% (滿載)</span>
+                        </div>
+                    </div>
+
+                    <!-- Cooling Efficiency Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="coolingSlider" class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-snowflake text-cyan-400"></i>
+                                3. 冷卻水循環效率 (冷凝真空度)
+                            </label>
+                            <span id="cooling-rate-display" class="font-mono text-sm font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">85%</span>
+                        </div>
+                        <input type="range" id="coolingSlider" min="20" max="100" value="85" class="w-full">
+                        <div class="flex justify-between text-[11px] text-slate-500 font-mono mt-1">
+                            <span>20% (冷卻不足)</span>
+                            <span>60%</span>
+                            <span>100% (最佳真空)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Principle & Guided Tour Card -->
+                <div id="info-card" class="bg-gradient-to-b from-slate-900 to-slate-900/90 border border-cyan-500/30 rounded-2xl p-5 flex-grow flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-bl-full pointer-events-none"></div>
+                    
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span id="step-badge" class="text-xs font-mono font-bold px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                SYSTEM OVERVIEW
+                            </span>
+                            <div class="flex gap-1">
+                                <button onclick="prevStep()" class="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs transition" title="上一步">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+                                <button onclick="nextStep()" class="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs transition" title="下一步">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <h3 id="step-title" class="text-lg font-bold text-white mb-2">
+                            朗肯循環 (Rankine Cycle) 閉迴路發電
+                        </h3>
+
+                        <p id="step-desc" class="text-sm text-slate-300 leading-relaxed mb-4">
+                            現代火力發電廠大多採用「朗肯熱力循環」。透過燃燒化石燃料將純水加熱成高溫高壓的過熱蒸氣，利用蒸氣膨脹推動汽輪機旋轉，進而帶動發電機產生電力。做功後的蒸氣經冷凝器冷卻還原成水，再次送回鍋爐循環使用。
+                        </p>
+                    </div>
+
+                    <!-- Physics Formula / Key Concept Box -->
+                    <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5">
+                        <div class="text-[11px] font-mono text-cyan-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-atom"></i>
+                            <span id="step-formula-label">核心能量轉換路徑</span>
+                        </div>
+                        <div id="step-formula" class="font-mono text-xs sm:text-sm text-amber-300 font-semibold">
+                            化學能 (燃料) → 熱能 (蒸氣) → 機械能 (渦輪) → 電能
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Interactive Quiz Section -->
+        <section id="quiz-section" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4 mb-5">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-graduation-cap text-cyan-400"></i>
+                        隨堂知識小測驗：檢驗你的火力發電知識
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-400 mt-1">點擊選項即可獲得即時解析，全對可獲得「能源工程師」認證徽章！</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-mono bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+                        得分：<span id="quiz-score" class="text-cyan-400 font-bold text-sm">0</span> / <span id="quiz-total">4</span>
+                    </span>
+                    <button onclick="resetQuiz()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                        重新作答
+                    </button>
+                </div>
+            </div>
+
+            <div id="quiz-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Quiz questions injected by JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-5 mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <div>火力發電原理互動式教學網頁 • 物理與能源工程視覺化模擬</div>
+            <div>提示：可隨時拖動控制室滑桿觀察熱效率與排放變化</div>
+        </div>
+    </footer>
+
+    <!-- Application Logic & Canvas Animation Engine -->
+    <script>
+        // ==========================================
+        // 1. STATE & SIMULATION PARAMETERS
+        // ==========================================
+        const state = {
+            fuelType: 'coal',       // 'coal' | 'gas'
+            fuelRate: 75,           // 0 to 100 (%)
+            coolingEff: 85,         // 20 to 100 (%)
+            activeStep: 0,          // 0: All, 1: Boiler, 2: Steam, 3: Turbine, 4: Generator, 5: Condenser
+            
+            // Calculated real-time telemetry
+            boilerTemp: 540,        // °C
+            steamPressure: 16.8,    // MPa
+            turbineRPM: 3600,       // RPM
+            frequency: 60.0,        // Hz
+            powerOutput: 425,       // MW
+            efficiency: 41.2,       // %
+            co2Rate: 820,           // g/kWh
+            
+            // Animation internals
+            turbineAngle: 0,
+            pumpAngle: 0,
+            time: 0
+        };
+
+        // Guided Tour Content Data
+        const tourSteps = [
+            {
+                badge: "SYSTEM OVERVIEW",
+                title: "朗肯循環 (Rankine Cycle) 閉迴路發電",
+                desc: "現代火力發電廠採用閉迴路水蒸氣循環。燃料在鍋爐燃燒將水加熱為過熱蒸氣，推動汽輪機並帶動發電機產生電力；做功後的乏汽經冷凝器冷卻還原為液態水，由給水泵送回鍋爐重複利用。",
+                formulaLabel: "完整能量轉換鏈",
+                formula: "化學能 (燃料) → 熱能 (蒸氣) → 機械能 (渦輪) → 電能",
+                focusArea: null
+            },
+            {
+                badge: "STEP 01 • BOILER & COMBUSTION",
+                title: "1. 燃料供應與鍋爐燃燒",
+                desc: "磨煤機將煤炭磨成細粉噴入爐膛（或直接噴入天然氣）與空氣混合劇烈燃燒。燃燒產生的高溫煙氣將熱量傳遞給爐壁水冷壁管，廢氣則經由靜電集塵器(ESP)與脫硫設備淨化後由煙囪排出。",
+                formulaLabel: "能量轉換與燃燒反應",
+                formula: "C + O₂ → CO₂ + 熱能 (ΔH < 0) ｜ 化學能 → 熱能",
+                focusArea: { x: 40, y: 110, w: 230, h: 310 }
+            },
+            {
+                badge: "STEP 02 • STEAM GENERATION",
+                title: "2. 鍋爐水循環與過熱蒸氣產生",
+                desc: "高壓給水進入鍋爐省煤器與蒸發器吸收輻射熱沸騰，再進入「過熱器」加熱至 540°C 以上、壓力超過 16 MPa 的高溫高壓過熱蒸氣，避免蒸氣在渦輪葉片中提前凝結造成水滴侵蝕。",
+                formulaLabel: "熱力學等壓加熱過程",
+                formula: "Q_in = m · (h_steam - h_water) ｜ 液態水 → 過熱蒸氣",
+                focusArea: { x: 180, y: 90, w: 210, h: 130 }
+            },
+            {
+                badge: "STEP 03 • STEAM TURBINE",
+                title: "3. 汽輪機膨脹做功（渦輪旋轉）",
+                desc: "高溫高壓過熱蒸氣噴向汽輪機（Steam Turbine）的動葉片，蒸氣急劇膨脹降壓，將熱能與內能轉化為轉子高速旋轉的動能（台灣電網標準轉速為 3600 RPM，對應 60 Hz 交流電）。",
+                formulaLabel: "等熵膨脹做功與轉速公式",
+                formula: "W_turbine = m · (h_in - h_out) ｜ 熱能 → 機械能",
+                focusArea: { x: 350, y: 110, w: 170, h: 140 }
+            },
+            {
+                badge: "STEP 04 • GENERATOR & GRID",
+                title: "4. 電磁感應發電與升壓併網",
+                desc: "汽輪機大軸直接帶動發電機轉子（電磁鐵）在定子銅線圈內高速旋轉，根據法拉第電磁感應定律切割磁力線產生三相交流電，再經主變壓器升壓至 345 kV 送入高壓電網。",
+                formulaLabel: "法拉第電磁感應定律",
+                formula: "ε = -N · (dΦ_B / dt) ｜ 機械能 → 電能",
+                focusArea: { x: 520, y: 100, w: 240, h: 150 }
+            },
+            {
+                badge: "STEP 05 • CONDENSER & COOLING",
+                title: "5. 冷凝器排熱與給水閉迴路循環",
+                desc: "離開汽輪機的低壓乏汽進入「冷凝器」，與來自冷卻水塔（或海水）的冷卻管進行熱交換，凝結回液態水並維持極低背壓以提升效率，最後由高壓給水泵打回鍋爐完成循環。",
+                formulaLabel: "卡諾熱機效率極限原理",
+                formula: "η_max = 1 - (T_cold / T_hot) ｜ 冷卻越佳、效率越高",
+                focusArea: { x: 350, y: 260, w: 410, h: 210 }
+            }
+        ];
+
+        // Quiz Questions Data
+        const quizData = [
+            {
+                q: "1. 火力發電廠中，從燃料到產生電力的正確能量轉換順序為何？",
+                options: [
+                    "化學能 → 機械能 → 熱能 → 電能",
+                    "化學能 → 熱能 → 機械能 → 電能",
+                    "熱能 → 化學能 → 電能 → 機械能",
+                    "核能 → 熱能 → 機械能 → 電能"
+                ],
+                ans: 1,
+                exp: "燃料燃燒先將「化學能」轉為「熱能」加熱水蒸氣；蒸氣推動渦輪將熱能轉為「機械能」；最後發電機將機械能轉為「電能」。"
+            },
+            {
+                q: "2. 為什麼做功後的低壓蒸氣需要經過「冷凝器」冷卻成水，而不是直接把高溫蒸氣打回鍋爐？",
+                options: [
+                    "為了增加煙囪的排煙速度",
+                    "壓縮氣體極度耗能，且降低冷凝溫度能維持低背壓、大幅提升熱效率",
+                    "因為高溫蒸氣會溶解發電機的磁鐵",
+                    "為了收集純水供給附近居民飲用"
+                ],
+                ans: 1,
+                exp: "根據熱力學朗肯循環，壓縮液態水所需的泵功遠小於壓縮氣體，且冷凝器製造的低壓真空環境能讓蒸氣在汽輪機中充分膨脹做功。"
+            },
+            {
+                q: "3. 在發電機組中，若要產生符合台灣標準頻率 60 Hz 的交流電（雙極發電機），汽輪機轉速需維持在多少？",
+                options: [
+                    "60 RPM",
+                    "1,800 RPM",
+                    "3,600 RPM",
+                    "6,000 RPM"
+                ],
+                ans: 2,
+                exp: "頻率 f = (P × N) / 120，當磁極數 P = 2 時，轉速 N = 60 × 120 / 2 = 3,600 轉/分鐘 (RPM)。"
+            },
+            {
+                q: "4. 相較於傳統「燃煤」發電，使用「天然氣」作為火力發電燃料具有哪項顯著優點？",
+                options: [
+                    "完全不會產生任何二氧化碳",
+                    "燃料完全不需要燃燒就能發電",
+                    "熱效率較高、啟動調度快速，且碳排放與空氣污染物較低",
+                    "冷卻水塔不需要任何冷卻水"
+                ],
+                ans: 2,
+                exp: "天然氣主要成分為甲烷(CH₄)，氫碳比高，燃燒後每度電的 CO₂ 排放量約僅為燃煤的一半，且幾乎不含硫化物與懸浮微粒。"
+            }
+        ];
+
+        let userAnswers = new Array(quizData.length).fill(null);
+
+        // ==========================================
+        // 2. PHYSICS & TELEMETRY CALCULATION
+        // ==========================================
+        function updatePhysics() {
+            const f = state.fuelRate / 100; // 0 to 1
+            const c = state.coolingEff / 100; // 0.2 to 1
+            const isGas = state.fuelType === 'gas';
+
+            if (state.fuelRate === 0) {
+                state.boilerTemp = 30;
+                state.steamPressure = 0.1;
+                state.turbineRPM = 0;
+                state.frequency = 0.0;
+                state.powerOutput = 0;
+                state.efficiency = 0.0;
+                state.co2Rate = 0;
+            } else {
+                // Boiler Temperature: 250°C at low load up to 565°C (Coal) or 600°C (Gas)
+                const maxTemp = isGas ? 600 : 565;
+                state.boilerTemp = Math.round(240 + (maxTemp - 240) * Math.pow(f, 0.75));
+
+                // Steam Pressure: up to 18.5 MPa (Coal) or 20.0 MPa (Gas)
+                const maxPress = isGas ? 20.0 : 18.5;
+                state.steamPressure = +(1.2 + (maxPress - 1.2) * Math.pow(f, 0.85)).toFixed(1);
+
+                // Turbine RPM: Synchronizes to 3600 RPM once fuel > 15%
+                if (state.fuelRate < 15) {
+                    state.turbineRPM = Math.round((state.fuelRate / 15) * 3200);
+                } else {
+                    // Slight governor droop simulation around 3600 RPM
+                    state.turbineRPM = Math.round(3595 + f * 5);
+                }
+                state.frequency = +(state.turbineRPM / 60).toFixed(1);
+
+                // Thermal Efficiency: Depends on fuel type, load factor, and cooling vacuum
+                const baseEff = isGas ? 48.5 : 41.5;
+                const loadPenalty = (1 - f) * 4.5; // Partial load drops efficiency
+                const coolingBonus = (c - 0.85) * 6.0; // Better cooling improves Rankine efficiency
+                state.efficiency = +Math.max(22.0, (baseEff - loadPenalty + coolingBonus)).toFixed(1);
+
+                // Net Power Output (MW): Max 550 MW (Coal) or 620 MW (Gas)
+                const maxCapacity = isGas ? 620 : 550;
+                const coolingFactor = 0.88 + 0.12 * c;
+                state.powerOutput = Math.round(maxCapacity * f * coolingFactor);
+
+                // CO2 Emission Intensity (g/kWh)
+                const baseCO2 = isGas ? 410 : 810;
+                // Lower efficiency slightly increases specific emissions
+                const effRatio = baseEff / state.efficiency;
+                state.co2Rate = Math.round(baseCO2 * effRatio);
+            }
+
+            updateDashboardUI();
+        }
+
+        function updateDashboardUI() {
+            // Numbers
+            document.getElementById('val-temp').textContent = state.boilerTemp;
+            document.getElementById('val-pressure').textContent = state.steamPressure.toFixed(1);
+            document.getElementById('val-rpm').textContent = state.turbineRPM;
+            document.getElementById('val-hz').textContent = state.frequency.toFixed(1);
+            document.getElementById('val-power').textContent = state.powerOutput;
+            document.getElementById('val-eff').textContent = state.efficiency.toFixed(1);
+            document.getElementById('val-co2').textContent = state.co2Rate;
+
+            // Progress bars
+            document.getElementById('bar-temp').style.width = `${Math.min(100, (state.boilerTemp / 600) * 100)}%`;
+            document.getElementById('bar-pressure').style.width = `${Math.min(100, (state.steamPressure / 20) * 100)}%`;
+            document.getElementById('bar-power').style.width = `${Math.min(100, (state.powerOutput / 620) * 100)}%`;
+
+            // Status Badge
+            const statusBadge = document.getElementById('plant-status-badge');
+            if (state.fuelRate === 0) {
+                statusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span>機組停機解聯`;
+            } else if (state.fuelRate < 15) {
+                statusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>暖機升速中`;
+            } else {
+                statusBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>併網運轉中`;
+            }
+
+            // Efficiency Note & CO2 Badge
+            const effNote = document.getElementById('eff-note');
+            const co2Badge = document.getElementById('co2-badge');
+            if (state.fuelType === 'coal') {
+                effNote.textContent = "超臨界粉煤機組";
+                co2Badge.innerHTML = `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">較高碳排 (燃煤)</span>`;
+            } else {
+                effNote.textContent = "高效率燃氣機組";
+                co2Badge.innerHTML = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">低碳排 (天然氣)</span>`;
+            }
+
+            // Energy Balance Bar
+            const inputLabel = document.getElementById('energy-input-label');
+            const segElec = document.getElementById('seg-electric');
+            const segCond = document.getElementById('seg-condenser');
+            const segFlue = document.getElementById('seg-flue');
+
+            if (state.fuelRate === 0) {
+                inputLabel.textContent = "總輸入化學能: 0 MWth";
+                segElec.style.width = "33.3%";
+                segElec.textContent = "電能 0%";
+                segCond.style.width = "33.3%";
+                segCond.textContent = "冷凝排熱 0%";
+                segFlue.style.width = "33.4%";
+                segFlue.textContent = "煙氣損失 0%";
+            } else {
+                const totalHeatInput = Math.round(state.powerOutput / (state.efficiency / 100));
+                const flueLoss = state.fuelType === 'coal' ? 12.0 : 9.5;
+                const condenserLoss = +(100 - state.efficiency - flueLoss).toFixed(1);
+
+                inputLabel.textContent = `總輸入化學能: ${totalHeatInput} MWth`;
+                segElec.style.width = `${state.efficiency}%`;
+                segElec.textContent = `電能輸出 ${state.efficiency}%`;
+                segCond.style.width = `${condenserLoss}%`;
+                segCond.textContent = `冷凝器排熱 ${condenserLoss}%`;
+                segFlue.style.width = `${flueLoss}%`;
+                segFlue.textContent = `煙氣損失 ${flueLoss}%`;
+            }
+        }
+
+        // ==========================================
+        // 3. INTERACTIVE CONTROLS & GUIDED TOUR
+        // ==========================================
+        const fuelSlider = document.getElementById('fuelSlider');
+        const coolingSlider = document.getElementById('coolingSlider');
+
+        fuelSlider.addEventListener('input', (e) => {
+            state.fuelRate = parseInt(e.target.value, 10);
+            document.getElementById('fuel-rate-display').textContent = `${state.fuelRate}%`;
+            updatePhysics();
+        });
+
+        coolingSlider.addEventListener('input', (e) => {
+            state.coolingEff = parseInt(e.target.value, 10);
+            document.getElementById('cooling-rate-display').textContent = `${state.coolingEff}%`;
+            updatePhysics();
+        });
+
+        function setFuelType(type) {
+            state.fuelType = type;
+            const btnCoal = document.getElementById('btn-coal');
+            const btnGas = document.getElementById('btn-gas');
+            const fuelDesc = document.getElementById('fuel-desc');
+
+            if (type === 'coal') {
+                btnCoal.className = "py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-slate-800 text-orange-400 border border-orange-500/40 shadow";
+                btnGas.className = "py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+                fuelDesc.innerHTML = `<strong class="text-orange-400">粉煤鍋爐機組：</strong>燃料成本低、供應穩定，適合基載發電；但熱效率約 40~42%，CO₂ 排放較高，需配備靜電集塵器(ESP)與脫硫設備(FGD)。`;
+            } else {
+                btnGas.className = "py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-slate-800 text-cyan-400 border border-cyan-500/40 shadow";
+                btnCoal.className = "py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+                fuelDesc.innerHTML = `<strong class="text-cyan-400">天然氣機組：</strong>燃燒潔淨、起停反應極快（適合尖峰調度），熱效率較高且 CO₂ 排放量僅約燃煤的一半，幾乎無硫氧化物與粉塵污染。`;
+            }
+            updatePhysics();
+        }
+
+        function selectStep(stepIndex) {
+            state.activeStep = stepIndex;
+            
+            // Update buttons UI
+            document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+                if (idx === stepIndex) {
+                    btn.className = "step-btn flex-1 min-w-[95px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-bold transition text-center bg-cyan-600 text-white shadow shadow-cyan-500/30";
+                } else {
+                    btn.className = "step-btn flex-1 min-w-[95px] py-2 px-2.5 rounded-lg text-xs sm:text-sm font-medium transition text-center bg-slate-800 text-slate-300 hover:bg-slate-700";
+                }
+            });
+
+            // Update Info Card
+            const data = tourSteps[stepIndex];
+            document.getElementById('step-badge').textContent = data.badge;
+            document.getElementById('step-title').textContent = data.title;
+            document.getElementById('step-desc').textContent = data.desc;
+            document.getElementById('step-formula-label').textContent = data.formulaLabel;
+            document.getElementById('step-formula').textContent = data.formula;
+        }
+
+        function prevStep() {
+            const next = (state.activeStep - 1 + tourSteps.length) % tourSteps.length;
+            selectStep(next);
+        }
+
+        function nextStep() {
+            const next = (state.activeStep + 1) % tourSteps.length;
+            selectStep(next);
+        }
+
+        function resetSimulation() {
+            state.fuelType = 'coal';
+            state.fuelRate = 75;
+            state.coolingEff = 85;
+            fuelSlider.value = 75;
+            coolingSlider.value = 85;
+            document.getElementById('fuel-rate-display').textContent = '75%';
+            document.getElementById('cooling-rate-display').textContent = '85%';
+            setFuelType('coal');
+            selectStep(0);
+        }
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ==========================================
+        // 4. HTML5 CANVAS DYNAMIC SIMULATION ENGINE
+        // ==========================================
+        const canvas = document.getElementById('powerPlantCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Logical coordinate system: 800 x 500
+        const W = 800;
+        const H = 500;
+
+        // Particle pools
+        const waterLoopParticles = [];
+        const coolingLoopParticles = [];
+        const flueSmokeParticles = [];
+        const coolingSteamParticles = [];
+        const electricPulses = [];
+
+        // Closed-loop Rankine Cycle path waypoints
+        // Boiler(195,290) -> Superheater(195,120) -> Turbine(375,120) -> Condenser(440,305) -> Pump(310,395) -> Boiler(195,395) -> Boiler(195,290)
+        const rankinePath = [
+            { x: 195, y: 310, type: 'heating' },
+            { x: 195, y: 120, type: 'superheated' },
+            { x: 375, y: 120, type: 'superheated' },
+            { x: 435, y: 175, type: 'exhaust' },
+            { x: 435, y: 300, type: 'exhaust' },
+            { x: 435, y: 395, type: 'liquid' },
+            { x: 305, y: 395, type: 'liquid' },
+            { x: 195, y: 395, type: 'liquid' },
+            { x: 195, y: 310, type: 'heating' }
+        ];
+
+        // Cooling water path: Tower basin(660,395) -> Condenser(480,335) -> Condenser(480,295) -> Tower spray(660,295)
+        const coolingPath = [
+            { x: 660, y: 395, temp: 'cold' },
+            { x: 480, y: 395, temp: 'cold' },
+            { x: 480, y: 340, temp: 'cold' },
+            { x: 480, y: 295, temp: 'warm' },
+            { x: 660, y: 295, temp: 'warm' },
+            { x: 660, y: 395, temp: 'cold' }
+        ];
+
+        function initParticles() {
+            // 48 Rankine cycle working fluid particles
+            for (let i = 0; i < 48; i++) {
+                waterLoopParticles.push({
+                    progress: i / 48,
+                    size: 4
+                });
+            }
+            // 24 Cooling water particles
+            for (let i = 0; i < 24; i++) {
+                coolingLoopParticles.push({
+                    progress: i / 24,
+                    size: 3.5
+                });
+            }
+            // 12 Electric grid pulses
+            for (let i = 0; i < 12; i++) {
+                electricPulses.push({
+                    progress: i / 12
+                });
+            }
+        }
+
+        function getPointOnPath(path, progress) {
+            // Calculate total length
+            let totalLen = 0;
+            const segLens = [];
+            for (let i = 0; i < path.length - 1; i++) {
+                const dx = path[i+1].x - path[i].x;
+                const dy = path[i+1].y - path[i].y;
+                const len = Math.hypot(dx, dy);
+                segLens.push(len);
+                totalLen += len;
+            }
+            let targetDist = (progress % 1) * totalLen;
+            for (let i = 0; i < segLens.length; i++) {
+                if (targetDist <= segLens[i]) {
+                    const t = targetDist / segLens[i];
+                    return {
+                        x: path[i].x + (path[i+1].x - path[i].x) * t,
+                        y: path[i].y + (path[i+1].y - path[i].y) * t,
+                        segIndex: i,
+                        t: t
+                    };
+                }
+                targetDist -= segLens[i];
+            }
+            return { x: path[0].x, y: path[0].y, segIndex: 0, t: 0 };
+        }
+
+        // Handle Responsive Canvas Sizing
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale((rect.width / W) * dpr, (rect.height / H) * dpr);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Click on canvas to select corresponding Guided Tour step
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = W / rect.width;
+            const scaleY = H / rect.height;
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+
+            // Hitboxes for components
+            if (clickX >= 40 && clickX <= 260 && clickY >= 110 && clickY <= 420) {
+                selectStep(1); // Boiler
+            } else if (clickX >= 260 && clickX <= 360 && clickY >= 95 && clickY <= 150) {
+                selectStep(2); // Steam pipe
+            } else if (clickX >= 360 && clickX <= 490 && clickY >= 110 && clickY <= 230) {
+                selectStep(3); // Turbine
+            } else if (clickX >= 510 && clickX <= 760 && clickY >= 100 && clickY <= 230) {
+                selectStep(4); // Generator & Transformer
+            } else if (clickX >= 360 && clickX <= 760 && clickY >= 260 && clickY <= 460) {
+                selectStep(5); // Condenser & Cooling Tower
+            } else {
+                selectStep(0);
+            }
+        });
+
+        // Drawing Helpers
+        function drawRoundedRect(x, y, w, h, r, fill, stroke, lineWidth = 2) {
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, r);
+            if (fill) {
+                ctx.fillStyle = fill;
+                ctx.fill();
+            }
+            if (stroke) {
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
+        }
+
+        function drawLabel(text, x, y, subtext = null, align = 'center') {
+            ctx.textAlign = align;
+            ctx.font = 'bold 12px "Noto Sans TC", sans-serif';
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillText(text, x, y);
+            if (subtext) {
+                ctx.font = '10px "JetBrains Mono", monospace';
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(subtext, x, y + 13);
+            }
+        }
+
+        // Main Render Loop
+        function render(timestamp) {
+            state.time = timestamp * 0.001;
+            const f = state.fuelRate / 100;
+            const c = state.coolingEff / 100;
+
+            // Clear Background
+            ctx.fillStyle = '#070c18';
+            ctx.fillRect(0, 0, W, H);
+
+            // Subtle Engineering Blueprint Grid
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+            ctx.lineWidth = 1;
+            for (let gx = 0; gx < W; gx += 25) {
+                ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+            }
+            for (let gy = 0; gy < H; gy += 25) {
+                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+            }
+
+            // Ground Base Line
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 445, W, 55);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, 445); ctx.lineTo(W, 445); ctx.stroke();
+
+            // ==========================================
+            // A. FLUE GAS TREATMENT & CHIMNEY (Left)
+            // ==========================================
+            // Duct from Boiler top-left to ESP/FGD
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 14;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(130, 150);
+            ctx.lineTo(75, 150);
+            ctx.lineTo(75, 210);
+            ctx.stroke();
+
+            // Flue Gas Scrubber / ESP Box
+            drawRoundedRect(45, 210, 60, 75, 6, '#1e293b', '#64748b', 2);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 10px "Noto Sans TC"';
+            ctx.textAlign = 'center';
+            ctx.fillText('集塵脫硫', 75, 244);
+            ctx.font = '9px "JetBrains Mono"';
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillText('ESP/FGD', 75, 258);
+
+            // Duct to Chimney
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 12;
+            ctx.beginPath();
+            ctx.moveTo(75, 285);
+            ctx.lineTo(75, 330);
+            ctx.lineTo(42, 330);
+            ctx.stroke();
+
+            // Tall Chimney Stack
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(24, 445);
+            ctx.lineTo(30, 75);
+            ctx.lineTo(48, 75);
+            ctx.lineTo(54, 445);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Warning stripes on chimney
+            ctx.fillStyle = '#ea580c';
+            ctx.fillRect(29, 95, 20, 8);
+            ctx.fillRect(28, 120, 22, 8);
+
+            // Spawn & Render Chimney Smoke Particles
+            if (state.fuelRate > 0 && Math.random() < (0.15 + f * 0.4)) {
+                flueSmokeParticles.push({
+                    x: 39 + (Math.random() - 0.5) * 8,
+                    y: 72,
+                    vx: 0.4 + Math.random() * 0.6,
+                    vy: -0.6 - Math.random() * 0.6,
+                    r: 5 + Math.random() * 4,
+                    alpha: state.fuelType === 'coal' ? 0.55 : 0.25
+                });
+            }
+            for (let i = flueSmokeParticles.length - 1; i >= 0; i--) {
+                const p = flueSmokeParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.r += 0.12;
+                p.alpha -= 0.004;
+                if (p.alpha <= 0 || p.y < -20) {
+                    flueSmokeParticles.splice(i, 1);
+                    continue;
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = state.fuelType === 'coal' 
+                    ? `rgba(148, 163, 184, ${p.alpha})` 
+                    : `rgba(226, 232, 240, ${p.alpha})`;
+                ctx.fill();
+            }
+
+            // ==========================================
+            // B. PIPING NETWORK (Background Pipes)
+            // ==========================================
+            // 1. Rankine Cycle Main Pipe Outline
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Outer pipe casing
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 16;
+            ctx.beginPath();
+            rankinePath.forEach((pt, idx) => {
+                if (idx === 0) ctx.moveTo(pt.x, pt.y);
+                else ctx.lineTo(pt.x, pt.y);
+            });
+            ctx.stroke();
+
+            // Inner pipe colored segments
+            // High-temp steam pipe (Boiler top -> Turbine)
+            ctx.strokeStyle = state.fuelRate > 0 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(59, 130, 246, 0.25)';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(195, 170);
+            ctx.lineTo(195, 120);
+            ctx.lineTo(375, 120);
+            ctx.stroke();
+
+            // Exhaust steam (Turbine -> Condenser)
+            ctx.strokeStyle = state.fuelRate > 0 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.25)';
+            ctx.beginPath();
+            ctx.moveTo(435, 175);
+            ctx.lineTo(435, 290);
+            ctx.stroke();
+
+            // Feedwater return (Condenser -> Pump -> Boiler)
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.35)';
+            ctx.beginPath();
+            ctx.moveTo(435, 355);
+            ctx.lineTo(435, 395);
+            ctx.lineTo(195, 395);
+            ctx.lineTo(195, 340);
+            ctx.stroke();
+
+            // 2. Cooling Water Loop Pipe (Condenser <-> Cooling Tower)
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 14;
+            ctx.beginPath();
+            ctx.moveTo(660, 395);
+            ctx.lineTo(480, 395);
+            ctx.lineTo(480, 295);
+            ctx.lineTo(660, 295);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+
+            // ==========================================
+            // C. BOILER & FURNACE (鍋爐)
+            // ==========================================
+            drawRoundedRect(130, 140, 125, 220, 12, '#172033', '#64748b', 3);
+            
+            // Furnace Interior Glow
+            if (state.fuelRate > 0) {
+                const grad = ctx.createRadialGradient(192, 295, 10, 192, 275, 85);
+                if (state.fuelType === 'coal') {
+                    grad.addColorStop(0, `rgba(251, 191, 36, ${0.4 + f * 0.6})`);
+                    grad.addColorStop(0.5, `rgba(234, 88, 12, ${0.3 + f * 0.5})`);
+                    grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+                } else {
+                    grad.addColorStop(0, `rgba(56, 189, 248, ${0.4 + f * 0.6})`);
+                    grad.addColorStop(0.5, `rgba(249, 115, 22, ${0.3 + f * 0.4})`);
+                    grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+                }
+                ctx.fillStyle = grad;
+                ctx.fillRect(135, 180, 115, 175);
+
+                // Animated Flame Tongues
+                const flameCount = 5;
+                for (let k = 0; k < flameCount; k++) {
+                    const fx = 152 + k * 20;
+                    const fy = 335;
+                    const flicker = Math.sin(state.time * 12 + k * 2) * 6;
+                    const flameH = (25 + f * 55) + flicker;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(fx - 9, fy);
+                    ctx.quadraticCurveTo(fx - 4, fy - flameH * 0.6, fx, fy - flameH);
+                    ctx.quadraticCurveTo(fx + 4, fy - flameH * 0.6, fx + 9, fy);
+                    ctx.closePath();
+                    ctx.fillStyle = state.fuelType === 'coal' ? '#f97316' : '#38bdf8';
+                    ctx.fill();
+                }
+            }
+
+            // Fuel Feed Pipe into Boiler (Left side of Boiler)
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(95, 322, 38, 16);
+            // Fuel chunks/gas flowing in
+            if (state.fuelRate > 0) {
+                const offset = (state.time * (30 + f * 60)) % 18;
+                ctx.fillStyle = state.fuelType === 'coal' ? '#0f172a' : '#38bdf8';
+                for (let fx = 98 + offset; fx < 130; fx += 18) {
+                    ctx.beginPath();
+                    ctx.arc(fx, 330, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.font = 'bold 10px "Noto Sans TC"';
+            ctx.fillStyle = state.fuelType === 'coal' ? '#fb923c' : '#38bdf8';
+            ctx.textAlign = 'center';
+            ctx.fillText(state.fuelType === 'coal' ? '粉煤噴入' : '天然氣噴入', 105, 315);
+
+            // Boiler Water Wall Coil Visual
+            ctx.strokeStyle = state.fuelRate > 0 ? '#ef4444' : '#3b82f6';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(195, 355);
+            ctx.lineTo(195, 250);
+            ctx.lineTo(165, 235);
+            ctx.lineTo(225, 215);
+            ctx.lineTo(165, 195);
+            ctx.lineTo(225, 175);
+            ctx.lineTo(195, 160);
+            ctx.lineTo(195, 140);
+            ctx.stroke();
+
+            drawLabel('鍋爐 (Boiler)', 192, 422, `${state.boilerTemp}°C`);
+
+            // ==========================================
+            // D. STEAM TURBINE (汽輪機)
+            // ==========================================
+            // Trapezoid Turbine Casing
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(370, 125);
+            ctx.lineTo(465, 105);
+            ctx.lineTo(465, 195);
+            ctx.lineTo(370, 175);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Rotating Turbine Blades inside casing
+            const spinSpeed = (state.turbineRPM / 3600) * 0.25;
+            state.turbineAngle += spinSpeed;
+
+            const stages = [392, 418, 444];
+            const stageHeights = [18, 25, 32];
+            stages.forEach((sx, idx) => {
+                const h = stageHeights[idx];
+                const bladeY = Math.sin(state.turbineAngle + idx) * h;
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(sx, 150 - h);
+                ctx.lineTo(sx, 150 + h);
+                ctx.stroke();
+
+                // Animated moving blade highlight
+                ctx.fillStyle = '#e0f2fe';
+                ctx.beginPath();
+                ctx.arc(sx, 150 + bladeY, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Central Drive Shaft connecting Turbine to Generator
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(365, 147, 170, 6);
+
+            drawLabel('汽輪機 (Turbine)', 418, 92, `${state.turbineRPM} RPM`);
+
+            // ==========================================
+            // E. GENERATOR & TRANSFORMER (發電機與變壓器)
+            // ==========================================
+            // Generator Housing
+            drawRoundedRect(525, 112, 95, 76, 10, '#1e293b', '#38bdf8', 2.5);
+            
+            // Rotating Magnet Coil inside Generator
+            ctx.save();
+            ctx.translate(572, 150);
+            ctx.rotate(state.turbineAngle);
+            // N-S Pole Rotor
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(-18, -7, 18, 14);
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(0, -7, 18, 14);
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-18, -7, 36, 14);
+            ctx.restore();
+
+            drawLabel('發電機', 572, 95, 'Generator');
+
+            // Power Lines to Step-up Transformer
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(620, 140); ctx.lineTo(665, 140);
+            ctx.moveTo(620, 160); ctx.lineTo(665, 160);
+            ctx.stroke();
+
+            // Step-up Transformer
+            drawRoundedRect(665, 120, 48, 60, 6, '#1e293b', '#facc15', 2);
+            // Transformer coils symbol
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(682, 150, 8, 0, Math.PI * 2);
+            ctx.arc(696, 150, 8, 0, Math.PI * 2);
+            ctx.stroke();
+            drawLabel('升壓變壓器', 689, 106, '345 kV');
+
+            // Transmission Tower / Grid Line
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(755, 220); ctx.lineTo(765, 125); ctx.lineTo(775, 220);
+            ctx.moveTo(750, 145); ctx.lineTo(780, 145);
+            ctx.moveTo(754, 165); ctx.lineTo(776, 165);
+            ctx.stroke();
+
+            // High voltage wire
+            ctx.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(713, 145);
+            ctx.lineTo(765, 145);
+            ctx.lineTo(800, 135);
+            ctx.stroke();
+
+            // Electric Pulses flowing to Grid
+            if (state.powerOutput > 0) {
+                electricPulses.forEach(p => {
+                    p.progress = (p.progress + 0.015 * (0.3 + f * 0.7)) % 1;
+                    const px = 620 + p.progress * 180;
+                    const py = px < 765 ? 145 : 145 - ((px - 765) / 35) * 10;
+                    ctx.fillStyle = '#fef08a';
+                    ctx.shadowColor = '#facc15';
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+            }
+
+            // ==========================================
+            // F. CONDENSER & FEEDWATER PUMP (冷凝器與給水泵)
+            // ==========================================
+            drawRoundedRect(385, 275, 115, 85, 10, '#172033', '#06b6d4', 2.5);
+            
+            // Heat Exchanger U-Tube inside Condenser
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(498, 340);
+            ctx.lineTo(415, 340);
+            ctx.arc(415, 317.5, 22.5, Math.PI * 0.5, Math.PI * 1.5);
+            ctx.lineTo(498, 295);
+            ctx.stroke();
+
+            drawLabel('冷凝器 (Condenser)', 442, 263);
+
+            // Feedwater Pump (Bottom Loop)
+            state.pumpAngle += (0.04 + f * 0.12);
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(305, 395, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Pump impeller
+            ctx.save();
+            ctx.translate(305, 395);
+            ctx.rotate(state.pumpAngle);
+            ctx.strokeStyle = '#93c5fd';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+            ctx.moveTo(0, -10); ctx.lineTo(0, 10);
+            ctx.stroke();
+            ctx.restore();
+
+            drawLabel('高壓給水泵', 305, 426);
+
+            // ==========================================
+            // G. COOLING TOWER (冷卻水塔)
+            // ==========================================
+            // Hyperboloid Cooling Tower Shape
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(615, 445);
+            ctx.quadraticCurveTo(638, 340, 632, 245);
+            ctx.lineTo(708, 245);
+            ctx.quadraticCurveTo(702, 340, 725, 445);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Water basin at bottom of cooling tower
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.35)';
+            ctx.fillRect(622, 415, 96, 28);
+
+            // Cooling water spray droplets inside tower
+            if (state.fuelRate > 0) {
+                ctx.fillStyle = '#38bdf8';
+                for (let d = 0; d < 12; d++) {
+                    const dx = 640 + (d % 4) * 18 + Math.sin(state.time * 5 + d) * 2;
+                    const dy = 310 + ((state.time * 45 + d * 19) % 95);
+                    ctx.beginPath();
+                    ctx.arc(dx, dy, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // White Water Vapor rising from Cooling Tower top
+                if (Math.random() < (0.2 + c * 0.35)) {
+                    coolingSteamParticles.push({
+                        x: 670 + (Math.random() - 0.5) * 45,
+                        y: 242,
+                        vx: (Math.random() - 0.5) * 0.4 + 0.2,
+                        vy: -0.7 - Math.random() * 0.5,
+                        r: 10 + Math.random() * 8,
+                        alpha: 0.45
+                    });
+                }
+            }
+
+            for (let i = coolingSteamParticles.length - 1; i >= 0; i--) {
+                const p = coolingSteamParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.r += 0.18;
+                p.alpha -= 0.004;
+                if (p.alpha <= 0 || p.y < 140) {
+                    coolingSteamParticles.splice(i, 1);
+                    continue;
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(241, 245, 249, ${p.alpha})`;
+                ctx.fill();
+            }
+
+            drawLabel('冷卻水塔', 670, 463, 'Cooling Tower');
+
+            // ==========================================
+            // H. ANIMATED FLUID PARTICLES (Water/Steam)
+            // ==========================================
+            const flowSpeed = state.fuelRate === 0 ? 0 : (0.0012 + f * 0.0038);
+            waterLoopParticles.forEach(p => {
+                p.progress = (p.progress + flowSpeed) % 1;
+                const pos = getPointOnPath(rankinePath, p.progress);
+                
+                // Determine particle color based on Rankine cycle segment
+                let color = '#3b82f6'; // Liquid water (blue)
+                if (state.fuelRate > 0) {
+                    if (pos.segIndex === 0) {
+                        // Heating inside boiler
+                        color = pos.t > 0.5 ? '#ef4444' : '#f59e0b';
+                    } else if (pos.segIndex === 1) {
+                        // Superheated high-pressure steam
+                        color = '#ef4444';
+                    } else if (pos.segIndex === 2 || pos.segIndex === 3) {
+                        // Exhaust low-pressure steam into condenser
+                        color = '#f59e0b';
+                    } else {
+                        // Condensed liquid water
+                        color = '#3b82f6';
+                    }
+                }
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Cooling water loop particles
+            const coolSpeed = state.fuelRate === 0 ? 0.001 : (0.0015 + c * 0.0035);
+            coolingLoopParticles.forEach(p => {
+                p.progress = (p.progress + coolSpeed) % 1;
+                const pos = getPointOnPath(coolingPath, p.progress);
+                // Cold supply vs warm return
+                ctx.fillStyle = (pos.segIndex >= 3 && state.fuelRate > 0) ? '#38bdf8' : '#0284c7';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // ==========================================
+            // I. GUIDED TOUR HIGHLIGHT OVERLAY
+            // ==========================================
+            const currentTour = tourSteps[state.activeStep];
+            if (currentTour && currentTour.focusArea) {
+                const fa = currentTour.focusArea;
+                // Dim outside area slightly
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
+                ctx.beginPath();
+                ctx.rect(0, 0, W, H);
+                ctx.roundRect(fa.x, fa.y, fa.w, fa.h, 14);
+                ctx.fill('evenodd');
+
+                // Pulsing Highlight Border
+                const pulse = 0.6 + Math.sin(state.time * 5) * 0.4;
+                ctx.strokeStyle = `rgba(34, 211, 238, ${pulse})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.roundRect(fa.x, fa.y, fa.w, fa.h, 14);
+                ctx.stroke();
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        // ==========================================
+        // 5. INTERACTIVE QUIZ SYSTEM
+        // ==========================================
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            document.getElementById('quiz-total').textContent = quizData.length;
+            container.innerHTML = '';
+
+            quizData.forEach((item, qIdx) => {
+                const userAns = userAnswers[qIdx];
+                const isAnswered = userAns !== null;
+                const isCorrect = userAns === item.ans;
+
+                const card = document.createElement('div');
+                card.className = `bg-slate-950/80 border rounded-xl p-4 transition ${
+                    !isAnswered ? 'border-slate-800' : (isCorrect ? 'border-emerald-500/40' : 'border-rose-500/40')
+                }`;
+
+                let optionsHtml = '';
+                item.options.forEach((opt, oIdx) => {
+                    let btnClass = "w-full text-left text-xs sm:text-sm p-2.5 rounded-lg border transition flex items-center justify-between gap-2 ";
+                    let iconHtml = '';
+
+                    if (!isAnswered) {
+                        btnClass += "bg-slate-900 border-slate-800 hover:border-cyan-500/50 hover:bg-slate-800 text-slate-300 cursor-pointer";
+                    } else {
+                        if (oIdx === item.ans) {
+                            btnClass += "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 font-medium";
+                            iconHtml = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+                        } else if (oIdx === userAns) {
+                            btnClass += "bg-rose-500/20 border-rose-500/50 text-rose-300";
+                            iconHtml = '<i class="fa-solid fa-circle-xmark text-rose-400"></i>';
+                        } else {
+                            btnClass += "bg-slate-900/50 border-slate-800/50 text-slate-500 opacity-60";
+                        }
+                    }
+
+                    optionsHtml += `
+                        <button onclick="answerQuiz(${qIdx}, ${oIdx})" ${isAnswered ? 'disabled' : ''} class="${btnClass}">
+                            <span>${opt}</span>
+                            ${iconHtml}
+                        </button>
+                    `;
+                });
+
+                const feedbackHtml = isAnswered ? `
+                    <div class="mt-3 p-3 rounded-lg text-xs leading-relaxed ${
+                        isCorrect ? 'bg-emerald-950/50 text-emerald-200 border border-emerald-800/50' : 'bg-rose-950/50 text-rose-200 border border-rose-800/50'
+                    }">
+                        <strong class="block mb-0.5">${isCorrect ? '✔ 回答正確！' : '✘ 答錯囉，再看一次解析：'}</strong>
+                        ${item.exp}
+                    </div>
+                ` : '';
+
+                card.innerHTML = `
+                    <h4 class="text-sm font-bold text-white mb-3 leading-snug">${item.q}</h4>
+                    <div class="space-y-2">${optionsHtml}</div>
+                    ${feedbackHtml}
+                `;
+                container.appendChild(card);
+            });
+
+            // Update Score
+            const score = userAnswers.reduce((acc, ans, idx) => acc + (ans === quizData[idx].ans ? 1 : 0), 0);
+            document.getElementById('quiz-score').textContent = score;
+        }
+
+        function answerQuiz(qIdx, oIdx) {
+            if (userAnswers[qIdx] !== null) return;
+            userAnswers[qIdx] = oIdx;
+            renderQuiz();
+        }
+
+        function resetQuiz() {
+            userAnswers = new Array(quizData.length).fill(null);
+            renderQuiz();
+        }
+
+        // ==========================================
+        // 6. INITIALIZATION ON WINDOW LOAD
+        // ==========================================
+        window.onload = function () {
+            initParticles();
+            resizeCanvas();
+            updatePhysics();
+            renderQuiz();
+            requestAnimationFrame(render);
+        };
+    </script>
+</body>
+</html>
